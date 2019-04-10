@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const _ = require("lodash");
+const dotenv = require("dotenv");
 
 const mongoose = require("mongoose");
 
@@ -38,6 +39,8 @@ const initMongodb = () => {
   //Bind connection to error event (to get notification of connection errors)
   db.on("error", console.error.bind(console, "MongoDB connection error:"));
 };
+
+dotenv.config();
 
 initHttpServer(httpPort);
 initMongodb();
