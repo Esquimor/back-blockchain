@@ -1,0 +1,30 @@
+{
+  "name": "back-blockchain",
+  "version": "1.0.0",
+  "description": "Back of the blockchain",
+  "main": "src/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "nodemon": "nodemon src/main.js",
+    "start": "node ./src/main.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Esquiro69/back-blockchain.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Esquiro69/back-blockchain/issues"
+  },
+  "homepage": "https://github.com/Esquiro69/back-blockchain#readme",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "body-parser": "^1.18.3",
+    "elliptic": "^6.4.1",
+    "express": "^4.16.4",
+    "lodash": "^4.17.11",
+    "mongoose": "^5.5.0",
+    "passport": "^0.4.0"
+  }
+}
