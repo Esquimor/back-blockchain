@@ -90,7 +90,54 @@ router.post("/register/google", function(req, res, next) {
 });
 
 router.post("/register/facebook", function(req, res, next) {
-  res.json("create a new user with facebook");
+  var profileFields = ["id", "email"];
+  var accessTokenUrl = "https://graph.facebook.com/v2.5/oauth/access_token";
+  var graphApiUrl =
+    "https://graph.facebook.com/v2.5/me?fields=" + profileFields.join(",");
+
+  var params = {
+    code: req.body.code,
+    client_id: req.body.clientId,
+    client_secret: process.env.FACEBOOK_SECRET,
+    redirect_uri: req.body.redirectUri
+  };
+
+  // Exchange authorization code for access token.
+  axios.get({ url: accessTokenUrl, qs: params, json: true }, function(
+    err,
+    response,
+    accessToken
+  ) {
+    if (accessToken.error) {
+      return res.status(500).send({ msg: accessToken.error.message });
+    }
+
+    // Retrieve user's profile information.
+    axios.get({ url: graphApiUrl, qs: accessToken, json: true }, function(
+      err,
+      response,
+      profile
+    ) {
+      if (profile.error) {
+        return res.status(500).send({ msg: profile.error.message });
+      }
+      // Create a new user account or return an existing one.
+      User.findOne({ facebook: profile.id }, function(err, user) {
+        if (user) {
+          res
+            .status(400)
+            .send("A user already register with this facebook account");
+        } else {
+          user = new User({
+            facebook: profile.id
+          });
+          user.save(function(err) {
+            return res.send({ token: generateToken(user), user: user });
+          });
+        }
+      });
+    });
+  });
 });
 
 router.post("/login/email", function(req, res, next) {
@@ -138,7 +185,47 @@ router.post("/login/google", function(req, res, next) {
 });
 
 router.post("/login/facebook", function(req, res, next) {
-  res.json("login a user with facebook");
+  var profileFields = ["id", "email"];
+  var accessTokenUrl = "https://graph.facebook.com/v2.5/oauth/access_token";
+  var graphApiUrl =
+    "https://graph.facebook.com/v2.5/me?fields=" + profileFields.join(",");
+
+  var params = {
+    code: req.body.code,
+    client_id: req.body.clientId,
+    client_secret: process.env.FACEBOOK_SECRET,
+    redirect_uri: req.body.redirectUri
+  };
+
+  // Exchange authorization code for access token.
+  axios.get({ url: accessTokenUrl, qs: params, json: true }, function(
+    err,
+    response,
+    accessToken
+  ) {
+    if (accessToken.error) {
+      return res.status(500).send({ msg: accessToken.error.message });
+    }
+
+    // Retrieve user's profile information.
+    axios.get({ url: graphApiUrl, qs: accessToken, json: true }, function(
+      err,
+      response,
+      profile
+    ) {
+      if (profile.error) {
+        return res.status(500).send({ msg: profile.error.message });
+      }
+      // Create a new user account or return an existing one.
+      User.findOne({ facebook: profile.id }, function(err, user) {
+        if (user) {
+          return res.send({ token: generateToken(user), user: user });
+        } else {
+          res.status(400).send("No user exist with this facebook account");
+        }
+      });
+    });
+  });
 });
 
 router.post("/link/email", function(req, res, next) {
