@@ -20,7 +20,7 @@
   "homepage": "https://github.com/Esquiro69/back-blockchain#readme",
   "dependencies": {
     "axios": "^0.18.0",
-    "bcrypt": "^3.0.5",
+    "bcryptjs": "^2.4.3",
     "body-parser": "^1.18.3",
     "dotenv": "^7.0.0",
     "elliptic": "^6.4.1",

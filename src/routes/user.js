@@ -81,7 +81,7 @@ router.post("/register/google", function(req, res, next) {
             google: profile.sub
           });
           user.save(function(err) {
-            res.statu(200).send({ token: generateToken(user), user: user });
+            res.status(200).send({ token: generateToken(user), user: user });
           });
         }
       });
@@ -141,7 +141,18 @@ router.post("/register/facebook", function(req, res, next) {
 });
 
 router.post("/login/email", function(req, res, next) {
-  res.json("login a user with email");
+  const { email, password } = req.body;
+
+  User.findOne({ email }, function(err, user) {
+    if (err) {
+      res.status(400).send("no user found");
+    }
+    if (user.comparePassword(password)) {
+      res.status(200).send({ token: generateToken(user), user: user });
+    } else {
+      res.status(400).send("bad credidential");
+    }
+  });
 });
 
 router.post("/login/google", function(req, res, next) {
