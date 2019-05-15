@@ -47,8 +47,22 @@ const initHttpServer = myHttpPort => {
 
   app.use("/", indexRouter);
   app.use("/user", userRouter);
-  app.use("/blockchain", blockchainRouter);
-  app.use("/transaction", transactionRouter);
+  app.use(
+    "/blockchain",
+    function(req, res, next) {
+      if (!req.user) return res.status(400).send("Forbitten");
+      next();
+    },
+    blockchainRouter
+  );
+  app.use(
+    "/transaction",
+    function(req, res, next) {
+      if (!req.user) return res.status(400).send("Forbitten");
+      next();
+    },
+    transactionRouter
+  );
 
   // Start Server
   app.listen(myHttpPort, () => {
