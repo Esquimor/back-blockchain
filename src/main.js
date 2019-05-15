@@ -2,6 +2,9 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const _ = require("lodash");
 const dotenv = require("dotenv");
+const User = require("./models/User");
+const cors = require("cors");
+const jwt = require("jsonwebtoken");
 
 const mongoose = require("mongoose");
 
@@ -11,6 +14,30 @@ const httpPort = parseInt(process.env.HTTP_PORT) || 8000;
 const initHttpServer = myHttpPort => {
   const app = express();
   app.use(bodyParser.json());
+  app.use(cors());
+
+  app.use(function(req, res, next) {
+    req.isAuthenticated = function() {
+      const token =
+        (req.headers.authorization &&
+          req.headers.authorization.split(" ")[1]) ||
+        (req.cookies && req.cookies.token);
+      try {
+        return jwt.verify(token, process.env.TOKEN_SECRET);
+      } catch (err) {
+        return false;
+      }
+    };
+    if (req.isAuthenticated()) {
+      const payload = req.isAuthenticated();
+      User.findById(payload.data, function(err, user) {
+        if (!err) req.user = user;
+        next();
+      });
+    } else {
+      next();
+    }
+  });
 
   // Route
   const indexRouter = require("./routes/index");

@@ -143,11 +143,11 @@ router.post("/register/facebook", function(req, res, next) {
 router.post("/login/email", function(req, res, next) {
   const { email, password } = req.body;
 
-  User.findOne({ email }, function(err, user) {
+  User.findOne({ email }, async function(err, user) {
     if (err) {
       res.status(400).send("no user found");
     }
-    if (user.comparePassword(password)) {
+    if (await user.comparePassword(password)) {
       res.status(200).send({ token: generateToken(user), user: user });
     } else {
       res.status(400).send("bad credidential");
@@ -240,23 +240,135 @@ router.post("/login/facebook", function(req, res, next) {
 });
 
 router.post("/link/email", function(req, res, next) {
-  res.json("link a account to a email adress");
+  if (!req.user) return res.status(400).send("Forbitten");
+
+  if (!!req.user.email) res.status(400).send("Already email");
+
+  const { email } = req.body;
+
+  User.findByIdAndUpdate(req.user.id, { email }, function(err) {
+    if (err) {
+      res.status(400).send("An error has occured");
+    }
+    res.status(200).send("ok");
+  });
 });
 
 router.post("/link/google", function(req, res, next) {
-  res.json("link a account to a google account");
+  if (!req.user) return res.status(400).send("Forbitten");
+
+  const accessTokenUrl = "https://accounts.google.com/o/oauth2/token";
+  const peopleApiUrl =
+    "https://www.googleapis.com/plus/v1/people/me/openIdConnect";
+
+  const params = {
+    code: req.body.code,
+    client_id: req.body.clientId,
+    client_secret: process.env.GOOGLE_SECRET,
+    redirect_uri: req.body.redirectUri,
+    grant_type: "authorization_code"
+  };
+
+  axios.post(accessTokenUrl, { json: true, form: params }, function(
+    err,
+    response,
+    token
+  ) {
+    var accessToken = token.access_token;
+    var headers = { Authorization: "Bearer " + accessToken };
+    axios.get({ url: peopleApiUrl, headers: headers, json: true }, function(
+      err,
+      response,
+      profile
+    ) {
+      if (profile.error) {
+        return res.status(500).send({ message: profile.error.message });
+      }
+      User.findByIdAndUpdate(req.user.id, { google: profile.sub }, function(
+        err
+      ) {
+        if (err) {
+          res.status(400).send("An error has occured");
+        }
+        res.status(200).send("ok");
+      });
+    });
+  });
 });
 
 router.post("/link/facebook", function(req, res, next) {
-  res.json("link a account to a facebook account");
+  if (!req.user) return res.status(400).send("Forbitten");
+
+  var profileFields = ["id", "email"];
+  var accessTokenUrl = "https://graph.facebook.com/v2.5/oauth/access_token";
+  var graphApiUrl =
+    "https://graph.facebook.com/v2.5/me?fields=" + profileFields.join(",");
+
+  var params = {
+    code: req.body.code,
+    client_id: req.body.clientId,
+    client_secret: process.env.FACEBOOK_SECRET,
+    redirect_uri: req.body.redirectUri
+  };
+
+  axios.get({ url: accessTokenUrl, qs: params, json: true }, function(
+    err,
+    response,
+    accessToken
+  ) {
+    if (accessToken.error) {
+      return res.status(500).send({ msg: accessToken.error.message });
+    }
+    axios.get({ url: graphApiUrl, qs: accessToken, json: true }, function(
+      err,
+      response,
+      profile
+    ) {
+      if (profile.error) {
+        return res.status(500).send({ msg: profile.error.message });
+      }
+      User.findByIdAndUpdate(req.user.id, { facebook: profile.id }, function(
+        err
+      ) {
+        if (err) {
+          res.status(400).send("An error has occured");
+        }
+        res.status(200).send("ok");
+      });
+    });
+  });
 });
 
 router.post("/edit/account", function(req, res, next) {
-  res.json("edit the user");
+  if (!req.user) return res.status(400).send("Forbitten");
+
+  const { email } = req.body;
+
+  User.findByIdAndUpdate(req.user.id, { email }, function(err, user) {
+    if (err) return res.status(400).send("An error has occured");
+    res.status(200).send("ok");
+  });
 });
 
 router.post("/edit/password", function(req, res, next) {
-  res.json("change the user password");
+  if (!req.user) return res.status(400).send("Forbitten");
+
+  const password = req.body.password;
+  const confirmation = req.body.confirmation;
+
+  if (password !== confirmation) {
+    res.status(500).send("The password is different from the confirmation");
+  }
+
+  User.findById(req.user.id, function(err, user) {
+    user.newPassword(password);
+    user.save(err => {
+      if (err) {
+        res.status(500).send("An error as occured");
+      }
+      res.status(200).send("ok");
+    });
+  });
 });
 
 module.exports = router;
