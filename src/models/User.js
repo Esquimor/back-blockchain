@@ -17,18 +17,20 @@ const userSchema = new Schema({
 
 userSchema.pre("save", async function(next) {
   var user = this;
-  if (!user.isModified("password")) {
-    return next();
-  }
-  const salt = await bcrypt.genSalt(10);
-  const hash = await bcrypt.hash(user.password, salt);
-  user.password = hash;
 
   const keyPair = EC.genKeyPair();
   const privateKey = keyPair.getPrivate();
   user.private_key = privateKey.toString(16);
   const key = EC.keyFromPrivate(privateKey, "hex");
   user.public_key = key.getPublic().encode("hex");
+
+  if (!user.isModified("password")) {
+    return next();
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  const hash = await bcrypt.hash(user.password, salt);
+  user.password = hash;
   next();
 });
 

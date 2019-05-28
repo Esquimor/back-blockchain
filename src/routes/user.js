@@ -176,26 +176,55 @@ router.post("/login/google", function(req, res, next) {
     });
     const payload = ticket.getPayload();
     const userid = payload["sub"];
+    User.findOne({ google: userid }, function(err, user) {
+      if (err) return res.status(400).send("An error has occured");
+      if (!!user) {
+        return res.status(200).send({
+          token: generateToken(user),
+          user: {
+            google: user.google,
+            id: user.id
+          }
+        });
+      } else {
+        const user = new User({ google: userid });
+        user.save(err => {
+          if (err) {
+            return res.status(500).send("An error as occured");
+          }
+          return res
+            .status(200)
+            .send({ token: generateToken(user), user: user });
+        });
+      }
+    });
   }
   verify().catch(console.error);
 });
 
-router.post("/login/facebook", async function(req, res, next) {
-  let params = {
-    client_id: req.body.clientId,
-    client_secret: process.env.FACEBOOK_SECRET,
-    grant_type: "client_credentials",
-    redirect_uri: "http://localhost:8000/"
-  };
-  try {
-    await axios
-      .get("https://graph.facebook.com/oauth/access_token", { params })
-      .then(data => {
-        console.log(data);
+router.post("/login/facebook", function(req, res, next) {
+  const { userId } = req.body;
+
+  User.findOne({ facebook: userId }, function(err, user) {
+    if (err) return res.status(400).send("An error has occured");
+    if (!!user) {
+      return res.status(200).send({
+        token: generateToken(user),
+        user: {
+          email: user.email,
+          id: user.id
+        }
       });
-  } catch (e) {
-    console.log(e);
-  }
+    } else {
+      const user = new User({ facebook: userId });
+      user.save(err => {
+        if (err) {
+          return res.status(500).send("An error as occured");
+        }
+        return res.status(200).send({ token: generateToken(user), user: user });
+      });
+    }
+  });
 });
 
 router.post("/link/email", function(req, res, next) {
