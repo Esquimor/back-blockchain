@@ -1,8 +1,16 @@
 const express = require("express");
 const router = express.Router();
+const axios = require("axios");
 
-router.post("/all", function(req, res, next) {
-  res.send("send all the blockchain");
+router.get("/all", function(req, res, next) {
+  axios
+    .get(process.env.BLOCKCHAIN_URL + "/blockchain")
+    .then(({ data }) => {
+      res.status(200).send({ blockchain: data.blockchain });
+    })
+    .cath(() => {
+      res.status(400).send("An error has occured");
+    });
 });
 
 module.exports = router;

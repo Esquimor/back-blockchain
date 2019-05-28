@@ -8,10 +8,11 @@ const userSchema = new Schema({
   email: {
     type: String
   },
-  password: String,
+  password: { type: String },
   facebook: String,
   google: String,
-  private_key: String
+  private_key: String,
+  public_key: String
 });
 
 userSchema.pre("save", async function(next) {
@@ -26,13 +27,18 @@ userSchema.pre("save", async function(next) {
   const keyPair = EC.genKeyPair();
   const privateKey = keyPair.getPrivate();
   user.private_key = privateKey.toString(16);
-
+  const key = EC.keyFromPrivate(privateKey, "hex");
+  user.public_key = key.getPublic().encode("hex");
   next();
 });
 
 userSchema.methods.comparePassword = async function(password) {
-  const samePassword = await bcrypt.compare(password, this.password);
-  return samePassword;
+  try {
+    const samePassword = await bcrypt.compare(password, this.password);
+    return samePassword;
+  } catch (e) {
+    return false;
+  }
 };
 
 userSchema.methods.newPassword = async function(password) {
