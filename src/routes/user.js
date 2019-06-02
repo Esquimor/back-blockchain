@@ -155,13 +155,27 @@ router.post("/login/email", function(req, res, next) {
       return res.status(500).send("no user found");
     }
     if (await user.comparePassword(password)) {
-      return res.status(200).send({
-        token: generateToken(user),
-        user: {
-          email: user.email,
-          id: user.id
-        }
-      });
+      axios
+        .get(process.env.BLOCKCHAIN_URL + "user/amount", {
+          params: {
+            address: user.public_key
+          }
+        })
+        .then(({ data }) => {
+          return res.status(200).send({
+            token: generateToken(user),
+            user: {
+              email: user.email,
+              id: user.id,
+              pseudonyme: user.pseudonyme,
+              public_key: user.public_key,
+              amount: data.amount
+            }
+          });
+        })
+        .catch(e => {
+          return res.status(500).send("An error has occured");
+        });
     } else {
       return res.status(400).send("bad credidential");
     }
@@ -179,13 +193,25 @@ router.post("/login/google", function(req, res, next) {
     User.findOne({ google: userid }, function(err, user) {
       if (err) return res.status(400).send("An error has occured");
       if (!!user) {
-        return res.status(200).send({
-          token: generateToken(user),
-          user: {
-            google: user.google,
-            id: user.id
-          }
-        });
+        axios
+          .get(process.env.BLOCKCHAIN_URL + "/user/amount", {
+            address: user.public_key
+          })
+          .then(({ data }) => {
+            return res.status(200).send({
+              token: generateToken(user),
+              user: {
+                google: user.google,
+                id: user.id,
+                pseudonyme: user.pseudonyme,
+                public_key: user.public_key,
+                amount: data.amount
+              }
+            });
+          })
+          .catch(() => {
+            return res.status(500).send("An error has occured");
+          });
       } else {
         const user = new User({ google: userid });
         user.save(err => {
@@ -208,13 +234,25 @@ router.post("/login/facebook", function(req, res, next) {
   User.findOne({ facebook: userId }, function(err, user) {
     if (err) return res.status(400).send("An error has occured");
     if (!!user) {
-      return res.status(200).send({
-        token: generateToken(user),
-        user: {
-          email: user.email,
-          id: user.id
-        }
-      });
+      axios
+        .get(process.env.BLOCKCHAIN_URL + "/user/amount", {
+          address: user.public_key
+        })
+        .then(({ data }) => {
+          return res.status(200).send({
+            token: generateToken(user),
+            user: {
+              facebook: user.facebook,
+              id: user.id,
+              pseudonyme: user.pseudonyme,
+              public_key: user.public_key,
+              amount: data.amount
+            }
+          });
+        })
+        .catch(() => {
+          return res.status(500).send("An error has occured");
+        });
     } else {
       const user = new User({ facebook: userId });
       user.save(err => {
@@ -330,11 +368,14 @@ router.post("/link/facebook", function(req, res, next) {
 router.post("/edit/account", function(req, res, next) {
   if (!req.user) return res.status(400).send("Forbitten");
 
-  const { email } = req.body;
+  const { email, pseudonyme } = req.body;
 
-  User.findByIdAndUpdate(req.user.id, { email }, function(err, user) {
+  User.findByIdAndUpdate(req.user.id, { email, pseudonyme }, function(
+    err,
+    user
+  ) {
     if (err) return res.status(400).send("An error has occured");
-    res.status(200).send("ok");
+    return res.status(200).send("ok");
   });
 });
 
