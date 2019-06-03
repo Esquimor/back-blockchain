@@ -165,6 +165,8 @@ router.post("/login/email", function(req, res, next) {
           return res.status(200).send({
             token: generateToken(user),
             user: {
+              google: user.google,
+              facebook: user.facebook,
               email: user.email,
               id: user.id,
               pseudonyme: user.pseudonyme,
@@ -194,14 +196,18 @@ router.post("/login/google", function(req, res, next) {
       if (err) return res.status(400).send("An error has occured");
       if (!!user) {
         axios
-          .get(process.env.BLOCKCHAIN_URL + "/user/amount", {
-            address: user.public_key
+          .get(process.env.BLOCKCHAIN_URL + "user/amount", {
+            params: {
+              address: user.public_key
+            }
           })
           .then(({ data }) => {
             return res.status(200).send({
               token: generateToken(user),
               user: {
                 google: user.google,
+                facebook: user.facebook,
+                email: user.email,
                 id: user.id,
                 pseudonyme: user.pseudonyme,
                 public_key: user.public_key,
@@ -218,9 +224,18 @@ router.post("/login/google", function(req, res, next) {
           if (err) {
             return res.status(500).send("An error as occured");
           }
-          return res
-            .status(200)
-            .send({ token: generateToken(user), user: user });
+          return res.status(200).send({
+            token: generateToken(user),
+            user: {
+              google: user.google,
+              facebook: user.facebook,
+              email: user.email,
+              id: user.id,
+              pseudonyme: user.pseudonyme,
+              public_key: user.public_key,
+              amount: 0
+            }
+          });
         });
       }
     });
@@ -235,14 +250,18 @@ router.post("/login/facebook", function(req, res, next) {
     if (err) return res.status(400).send("An error has occured");
     if (!!user) {
       axios
-        .get(process.env.BLOCKCHAIN_URL + "/user/amount", {
-          address: user.public_key
+        .get(process.env.BLOCKCHAIN_URL + "user/amount", {
+          params: {
+            address: user.public_key
+          }
         })
         .then(({ data }) => {
           return res.status(200).send({
             token: generateToken(user),
             user: {
+              google: user.google,
               facebook: user.facebook,
+              email: user.email,
               id: user.id,
               pseudonyme: user.pseudonyme,
               public_key: user.public_key,
@@ -259,7 +278,18 @@ router.post("/login/facebook", function(req, res, next) {
         if (err) {
           return res.status(500).send("An error as occured");
         }
-        return res.status(200).send({ token: generateToken(user), user: user });
+        return res.status(200).send({
+          token: generateToken(user),
+          user: {
+            google: user.google,
+            facebook: user.facebook,
+            email: user.email,
+            id: user.id,
+            pseudonyme: user.pseudonyme,
+            public_key: user.public_key,
+            amount: 0
+          }
+        });
       });
     }
   });
@@ -280,88 +310,35 @@ router.post("/link/email", function(req, res, next) {
   });
 });
 
-router.post("/link/google", function(req, res, next) {
-  if (!req.user) return res.status(400).send("Forbitten");
-
-  const accessTokenUrl = "https://accounts.google.com/o/oauth2/token";
-  const peopleApiUrl =
-    "https://www.googleapis.com/plus/v1/people/me/openIdConnect";
-
-  const params = {
-    code: req.body.code,
-    client_id: req.body.clientId,
-    client_secret: process.env.GOOGLE_SECRET,
-    redirect_uri: req.body.redirectUri,
-    grant_type: "authorization_code"
-  };
-
-  axios.post(accessTokenUrl, { json: true, form: params }, function(
-    err,
-    response,
-    token
-  ) {
-    var accessToken = token.access_token;
-    var headers = { Authorization: "Bearer " + accessToken };
-    axios.get({ url: peopleApiUrl, headers: headers, json: true }, function(
-      err,
-      response,
-      profile
-    ) {
-      if (profile.error) {
-        return res.status(500).send({ message: profile.error.message });
-      }
-      User.findByIdAndUpdate(req.user.id, { google: profile.sub }, function(
-        err
-      ) {
-        if (err) {
-          res.status(400).send("An error has occured");
-        }
-        res.status(200).send("ok");
-      });
+router.post("/link/google", function(req, res) {
+  const client = new OAuth2Client(process.env.GOOGLE_SECRET);
+  async function verify() {
+    const ticket = await client.verifyIdToken({
+      idToken: req.body.clientId
     });
-  });
+    const payload = ticket.getPayload();
+    const userid = payload["sub"];
+    User.findOneAndUpdate({ _id: req.body.id }, { google: userid }, function(
+      err,
+      user
+    ) {
+      if (err) return res.status(400).send("An error has occured");
+      if (!!user) {
+        return res.status(200).send({ googleId: userid });
+      }
+    });
+  }
+  verify().catch(console.error);
 });
 
 router.post("/link/facebook", function(req, res, next) {
-  if (!req.user) return res.status(400).send("Forbitten");
+  const { userId, id } = req.body;
 
-  var profileFields = ["id", "email"];
-  var accessTokenUrl = "https://graph.facebook.com/v2.5/oauth/access_token";
-  var graphApiUrl =
-    "https://graph.facebook.com/v2.5/me?fields=" + profileFields.join(",");
-
-  var params = {
-    code: req.body.code,
-    client_id: req.body.clientId,
-    client_secret: process.env.FACEBOOK_SECRET,
-    redirect_uri: req.body.redirectUri
-  };
-
-  axios.get({ url: accessTokenUrl, qs: params, json: true }, function(
-    err,
-    response,
-    accessToken
-  ) {
-    if (accessToken.error) {
-      return res.status(500).send({ msg: accessToken.error.message });
+  User.findOneAndUpdate({ _id: id }, { facebook: userId }, function(err, user) {
+    if (err) return res.status(400).send("An error has occured");
+    if (!!user) {
+      return res.status(200).send({ facebookId: userId });
     }
-    axios.get({ url: graphApiUrl, qs: accessToken, json: true }, function(
-      err,
-      response,
-      profile
-    ) {
-      if (profile.error) {
-        return res.status(500).send({ msg: profile.error.message });
-      }
-      User.findByIdAndUpdate(req.user.id, { facebook: profile.id }, function(
-        err
-      ) {
-        if (err) {
-          res.status(400).send("An error has occured");
-        }
-        res.status(200).send("ok");
-      });
-    });
   });
 });
 
