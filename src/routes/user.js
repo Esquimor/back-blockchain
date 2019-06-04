@@ -342,17 +342,18 @@ router.post("/link/facebook", function(req, res, next) {
   });
 });
 
-router.post("/edit/account", function(req, res, next) {
-  if (!req.user) return res.status(400).send("Forbitten");
+router.post("/edit/account", async function(req, res, next) {
+  const { email, pseudonyme, id } = req.body;
 
-  const { email, pseudonyme } = req.body;
-
-  User.findByIdAndUpdate(req.user.id, { email, pseudonyme }, function(
-    err,
-    user
-  ) {
+  if (!!email) {
+    const hasUserByEmail = await User.findOne({ email: email });
+    if (!!hasUserByEmail && hasUserByEmail._id != id) {
+      return res.status(500).send("An error has occured");
+    }
+  }
+  User.findByIdAndUpdate(id, { email, pseudonyme }, function(err, user) {
     if (err) return res.status(400).send("An error has occured");
-    return res.status(200).send("ok");
+    return res.status(200).send({ user });
   });
 });
 
