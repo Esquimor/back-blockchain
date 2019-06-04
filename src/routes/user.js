@@ -47,7 +47,18 @@ router.post("/register/email", async function(req, res, next) {
     if (err) {
       return res.status(500).send("An error as occured");
     }
-    res.status(200).send({ token: generateToken(user), user: user });
+    res.status(200).send({
+      token: generateToken(user),
+      user: {
+        google: user.google,
+        facebook: user.facebook,
+        email: user.email,
+        id: user.id,
+        pseudonyme: user.pseudonyme,
+        public_key: user.public_key,
+        amount: 0
+      }
+    });
   });
 });
 

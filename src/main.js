@@ -55,14 +55,7 @@ const initHttpServer = myHttpPort => {
     },
     blockchainRouter
   );
-  app.use(
-    "/transaction",
-    function(req, res, next) {
-      if (!req.user) return res.status(400).send("Forbitten");
-      next();
-    },
-    transactionRouter
-  );
+  app.use("/transaction", transactionRouter);
 
   // Start Server
   app.listen(myHttpPort, () => {
