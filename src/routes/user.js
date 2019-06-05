@@ -166,29 +166,17 @@ router.post("/login/email", function(req, res, next) {
       return res.status(500).send("no user found");
     }
     if (await user.comparePassword(password)) {
-      axios
-        .get(process.env.BLOCKCHAIN_URL + "user/amount", {
-          params: {
-            address: user.public_key
-          }
-        })
-        .then(({ data }) => {
-          return res.status(200).send({
-            token: generateToken(user),
-            user: {
-              google: user.google,
-              facebook: user.facebook,
-              email: user.email,
-              id: user.id,
-              pseudonyme: user.pseudonyme,
-              public_key: user.public_key,
-              amount: data.amount
-            }
-          });
-        })
-        .catch(e => {
-          return res.status(500).send("An error has occured");
-        });
+      return res.status(200).send({
+        token: generateToken(user),
+        user: {
+          google: user.google,
+          facebook: user.facebook,
+          email: user.email,
+          id: user.id,
+          pseudonyme: user.pseudonyme,
+          public_key: user.public_key
+        }
+      });
     } else {
       return res.status(400).send("bad credidential");
     }
@@ -206,29 +194,18 @@ router.post("/login/google", function(req, res, next) {
     User.findOne({ google: userid }, function(err, user) {
       if (err) return res.status(400).send("An error has occured");
       if (!!user) {
-        axios
-          .get(process.env.BLOCKCHAIN_URL + "user/amount", {
-            params: {
-              address: user.public_key
-            }
-          })
-          .then(({ data }) => {
-            return res.status(200).send({
-              token: generateToken(user),
-              user: {
-                google: user.google,
-                facebook: user.facebook,
-                email: user.email,
-                id: user.id,
-                pseudonyme: user.pseudonyme,
-                public_key: user.public_key,
-                amount: data.amount
-              }
-            });
-          })
-          .catch(() => {
-            return res.status(500).send("An error has occured");
-          });
+        return res.status(200).send({
+          token: generateToken(user),
+          user: {
+            google: user.google,
+            facebook: user.facebook,
+            email: user.email,
+            id: user.id,
+            pseudonyme: user.pseudonyme,
+            public_key: user.public_key,
+            amount: data.amount
+          }
+        });
       } else {
         const user = new User({ google: userid });
         user.save(err => {
@@ -243,8 +220,7 @@ router.post("/login/google", function(req, res, next) {
               email: user.email,
               id: user.id,
               pseudonyme: user.pseudonyme,
-              public_key: user.public_key,
-              amount: 0
+              public_key: user.public_key
             }
           });
         });
@@ -260,29 +236,17 @@ router.post("/login/facebook", function(req, res, next) {
   User.findOne({ facebook: userId }, function(err, user) {
     if (err) return res.status(400).send("An error has occured");
     if (!!user) {
-      axios
-        .get(process.env.BLOCKCHAIN_URL + "user/amount", {
-          params: {
-            address: user.public_key
-          }
-        })
-        .then(({ data }) => {
-          return res.status(200).send({
-            token: generateToken(user),
-            user: {
-              google: user.google,
-              facebook: user.facebook,
-              email: user.email,
-              id: user.id,
-              pseudonyme: user.pseudonyme,
-              public_key: user.public_key,
-              amount: data.amount
-            }
-          });
-        })
-        .catch(() => {
-          return res.status(500).send("An error has occured");
-        });
+      return res.status(200).send({
+        token: generateToken(user),
+        user: {
+          google: user.google,
+          facebook: user.facebook,
+          email: user.email,
+          id: user.id,
+          pseudonyme: user.pseudonyme,
+          public_key: user.public_key
+        }
+      });
     } else {
       const user = new User({ facebook: userId });
       user.save(err => {
@@ -297,8 +261,7 @@ router.post("/login/facebook", function(req, res, next) {
             email: user.email,
             id: user.id,
             pseudonyme: user.pseudonyme,
-            public_key: user.public_key,
-            amount: 0
+            public_key: user.public_key
           }
         });
       });
