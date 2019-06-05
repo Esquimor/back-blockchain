@@ -369,17 +369,14 @@ router.post("/edit/account", async function(req, res, next) {
 });
 
 router.post("/edit/password", function(req, res, next) {
-  if (!req.user) return res.status(400).send("Forbitten");
-
-  const password = req.body.password;
-  const confirmation = req.body.confirmation;
+  const { password, confirmation, id } = req.body;
 
   if (password !== confirmation) {
     res.status(500).send("The password is different from the confirmation");
   }
 
-  User.findById(req.user.id, function(err, user) {
-    user.newPassword(password);
+  User.findById(id, function(err, user) {
+    user.password = password;
     user.save(err => {
       if (err) {
         res.status(500).send("An error as occured");
